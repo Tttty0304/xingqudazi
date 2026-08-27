@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { api, errorMessage, resolveMediaUrl, translateCode } from '../api/client'
+import { api, errorMessage, newIdempotencyKey, resolveMediaUrl, translateCode } from '../api/client'
 import { UserActionPopover, type FriendPopoverStatus } from '../components/UserActionPopover'
 import { useAuth } from '../context/AuthContext'
 import { useSocket } from '../context/SocketContext'
@@ -191,7 +191,7 @@ export function RoomChatPage() {
     const content = input.trim()
     if (!content || !roomId) return
     setSendError(null)
-		sendReliable({ type: 'send_message', room_id: roomId, msg_id: crypto.randomUUID(), content })
+		sendReliable({ type: 'send_message', room_id: roomId, msg_id: newIdempotencyKey(), content })
     setInput('')
   }
 
@@ -212,7 +212,7 @@ export function RoomChatPage() {
 		sendReliable({
         type: 'send_message',
         room_id: roomId,
-        msg_id: crypto.randomUUID(),
+        msg_id: newIdempotencyKey(),
         content: result.url,
         content_type: 'image',
       })

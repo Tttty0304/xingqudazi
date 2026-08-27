@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { api, errorMessage, resolveMediaUrl, translateCode } from '../api/client'
+import { api, errorMessage, newIdempotencyKey, resolveMediaUrl, translateCode } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useSocket } from '../context/SocketContext'
 import { useUsernames } from '../hooks/useUsernames'
@@ -117,7 +117,7 @@ export function DirectChatPage() {
     const content = input.trim()
     if (!content || !peerId) return
     setSendError(null)
-		sendReliable({ type: 'send_direct_message', target_user_id: peerId, msg_id: crypto.randomUUID(), content })
+		sendReliable({ type: 'send_direct_message', target_user_id: peerId, msg_id: newIdempotencyKey(), content })
     setInput('')
   }
 
@@ -134,7 +134,7 @@ export function DirectChatPage() {
 		sendReliable({
         type: 'send_direct_message',
         target_user_id: peerId,
-        msg_id: crypto.randomUUID(),
+        msg_id: newIdempotencyKey(),
         content: result.url,
         content_type: 'image',
       })
