@@ -2,6 +2,11 @@
 
 基于不同兴趣主题的在线聊天室 Web 产品。用户可浏览不同兴趣的聊天室、进入房间与在线用户实时聊天，并支持好友、私聊等 IM 基础能力。
 
+> **最终交付文档**（考核提交主文档：产品体验 + 整体架构 + 关键技术方案 + 后端工程质量
+> 细节【优雅报错/数据校验/幂等重放/测试覆盖率】+ 云端部署 + 压测结论 + AI 协作方式，
+> 一份文档看完全貌）：
+> [`docs/29-final-delivery-document.md`](docs/29-final-delivery-document.md)。
+
 > 需求扩写、开放问题确认与任务拆解详见 [`docs/00-brainstorm-and-plan.md`](docs/00-brainstorm-and-plan.md)；
 > 接口级验收用例详见 [`testcase/00-testcase-plan.md`](testcase/00-testcase-plan.md)。
 >
