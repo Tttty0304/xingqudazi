@@ -49,7 +49,11 @@ export function ProfilePage() {
       const form = new FormData()
       form.append('file', file)
       const uploaded = await api.upload<{ url: string }>('/api/media/upload', form, token)
-      setAvatarURL(uploaded.url)
+      // 上传成功后立即持久化头像，避免"上传"与"保存"两步分离导致用户以为已保存、
+      // 刷新后却又回到旧头像（此前只 setAvatarURL 改本地 state，未调用后端保存接口）。
+      const updated = await api.put<Profile>('/api/me/profile', { avatar_url: uploaded.url, bio }, token)
+      setProfile(updated)
+      setAvatarURL(updated.avatar_url)
     } catch (err) {
       setError(errorMessage(err))
     } finally {
