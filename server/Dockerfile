@@ -4,6 +4,9 @@
 # --- build stage ---
 FROM golang:1.25-alpine AS builder
 WORKDIR /src
+# 国内镜像环境拉取 Go 依赖：优先使用 goproxy.cn，失败回落到官方源，
+# 避免从 proxy.golang.org 直连超时（腾讯云等国内服务器常见问题）。
+ENV GOPROXY=https://goproxy.cn,direct
 COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ .
