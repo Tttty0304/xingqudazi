@@ -1,0 +1,101 @@
+name: CI
+
+# 能力补齐项：此前测试与代码质量方向完全没有接入任何 CI，`golangci-lint`/
+# `go test`/`npm test`/`npm run build` 全部靠手动执行，没有"提交后自动跑一遍"
+# 的兜底机制。本配置覆盖后端（gofmt/govet/golangci-lint/go test）与前端
+# （tsc构建/oxlint/vitest）两条独立流水线。
+#
+# 已知限制（如实标注）：本项目未接入任何真实的 git.woa.com/GitHub 远程仓库
+# （见 project-meta.yaml），因此本文件目前只是"配置资产"本身——尚未在真实
+# CI 环境跑过一次，不能等同于"已验证通过的 CI"。若将本项目推送到真实 GitHub
+# 仓库，本配置即可直接生效，无需额外改动。
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend:
+    name: Backend (Go)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: im_user
+          POSTGRES_PASSWORD: im_password
+          POSTGRES_DB: xingqudazi_im
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U im_user"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: server/go.sum
+
+      - name: Apply migrations
+        run: |
+          for f in ../migrations/*.up.sql; do
+            PGPASSWORD=im_password psql -h localhost -U im_user -d xingqudazi_im -f "$f"
+          done
+        env:
+          PGPASSWORD: im_password
+
+      - name: gofmt check
+        run: |
+          diff <(gofmt -l .) <(echo -n "")
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: server
+          version: latest
+
+      - name: go test (含 repository/redis 真实集成测试)
+        run: go test ./... -v -cover
+        env:
+          TEST_POSTGRES_DSN: "postgres://im_user:im_password@localhost:5432/xingqudazi_im?sslmode=disable"
+          TEST_REDIS_ADDR: "localhost:6379"
+
+  frontend:
+    name: Frontend (React/Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - run: npm ci
+      - name: 类型检查 + 生产构建
+        run: npm run build
+      - name: oxlint
+        run: npm run lint
+      - name: vitest
+        run: npm run test

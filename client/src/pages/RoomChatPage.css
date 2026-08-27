@@ -1,0 +1,131 @@
+.chat-shell {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+
+.chat-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.chat-status {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.chat-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #888;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.chat-bubble {
+  max-width: 70%;
+  align-self: flex-start;
+  background: #2a2a2a;
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+}
+
+.chat-bubble.mine {
+  align-self: flex-end;
+  background: #2b5a9e;
+}
+
+.chat-bubble-sender {
+  font-size: 0.72rem;
+  color: #aaa;
+  margin-bottom: 0.15rem;
+}
+
+.chat-sender-name-btn {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.chat-sender-name-btn:hover {
+  color: #7ab4ff;
+}
+
+.chat-bubble-content {
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-image {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 6px;
+  display: block;
+}
+
+.chat-send-error {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.chat-input-row input[type='text'] {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+}
+
+.chat-input-row button {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  border: none;
+  background: #2b5a9e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.chat-input-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-upload-button {
+  background: none !important;
+  border: 1px solid #444 !important;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 480px) {
+  .chat-shell {
+    height: calc(100vh - 90px);
+  }
+  .chat-bubble {
+    max-width: 85%;
+  }
+}

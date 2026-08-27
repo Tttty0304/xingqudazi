@@ -1,0 +1,14 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "panels": [
+    {"type": "stat", "title": "在线 WebSocket 连接", "targets": [{"expr": "interest_chat_online_connections"}], "gridPos": {"h": 7, "w": 8, "x": 0, "y": 0}},
+    {"type": "stat", "title": "消息总数", "targets": [{"expr": "interest_chat_messages_sent_total"}], "gridPos": {"h": 7, "w": 8, "x": 8, "y": 0}},
+    {"type": "stat", "title": "5 分钟 WS 错误", "targets": [{"expr": "increase(interest_chat_ws_errors_total[5m])"}], "gridPos": {"h": 7, "w": 8, "x": 16, "y": 0}},
+    {"type": "timeseries", "title": "HTTP 请求速率", "targets": [{"expr": "rate(interest_chat_http_requests_total[5m])"}], "gridPos": {"h": 9, "w": 12, "x": 0, "y": 7}},
+    {"type": "timeseries", "title": "房间在线人数", "targets": [{"expr": "interest_chat_room_online"}], "gridPos": {"h": 9, "w": 12, "x": 12, "y": 7}}
+  ],
+  "schemaVersion": 41,
+  "title": "兴趣搭子服务概览",
+  "version": 1
+}

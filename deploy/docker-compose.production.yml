@@ -1,0 +1,103 @@
+# 公网生产编排：不暴露 Postgres、Redis 或后端端口；仅 Caddy 暴露 80/443 并自动 TLS。
+# 用法：cp .env.production.example .env.production，填写 DOMAIN/密钥后执行：
+# docker compose --env-file .env.production -f deploy/docker-compose.production.yml up -d --build
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../migrations/0001_init_schema.up.sql:/docker-entrypoint-initdb.d/0001_init_schema.sql:ro
+      - ../migrations/0002_task17_push_subscriptions.up.sql:/docker-entrypoint-initdb.d/0002_task17_push_subscriptions.sql:ro
+      - ../migrations/0003_perf_indexes.up.sql:/docker-entrypoint-initdb.d/0003_perf_indexes.sql:ro
+      - ../migrations/0004_profiles_rooms_unread.up.sql:/docker-entrypoint-initdb.d/0004_profiles_rooms_unread.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      HTTP_ADDR: ":8080"
+      POSTGRES_DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY: ${JWT_EXPIRY:-15m}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      SESSION_COOKIE_SECURE: "true"
+      AUTH_OMIT_TOKEN_RESPONSE: "true"
+      ALLOW_GUEST: ${ALLOW_GUEST:-true}
+      POSTGRES_MAX_CONNS: ${POSTGRES_MAX_CONNS:-20}
+      POSTGRES_MIN_CONNS: ${POSTGRES_MIN_CONNS:-2}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-10}
+      MAX_MESSAGE_LENGTH: ${MAX_MESSAGE_LENGTH:-1000}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-5242880}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
+      INSTANCE_ID: server1
+    volumes:
+      - media_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  client:
+    build:
+      context: ..
+      dockerfile: client/Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      client:
+        condition: service_started
+
+volumes:
+  pgdata:
+  media_uploads:
+  caddy_data:
+  caddy_config:

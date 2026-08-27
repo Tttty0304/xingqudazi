@@ -1,0 +1,116 @@
+.friends-title {
+  margin: 0 0 1rem;
+}
+
+.friends-section {
+  margin-bottom: 1.5rem;
+}
+
+.friends-section h3 {
+  font-size: 0.95rem;
+  color: #aaa;
+  margin: 0 0 0.5rem;
+}
+
+.friends-add-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.friends-add-row input {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+}
+
+.friends-add-row button {
+  padding: 0.55rem 1rem;
+  border-radius: 6px;
+  border: none;
+  background: #2b5a9e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.friends-add-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.friends-error {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  padding: 0.35rem 0;
+}
+
+.friends-success {
+  color: #4caf50;
+  font-size: 0.85rem;
+  padding: 0.35rem 0;
+}
+
+.friends-empty {
+  color: #888;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.friends-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.friends-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+}
+
+.friends-item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.friends-item-actions button {
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.friends-danger {
+  color: #e74c3c !important;
+  border-color: #663333 !important;
+}
+
+.friends-waiting {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.friends-online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+  margin-right: 0.5rem;
+}
+
+.friends-online-dot.online {
+  background: #4caf50;
+}

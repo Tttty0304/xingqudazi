@@ -1,0 +1,10 @@
+# 正式云部署时，将 receiver 替换为团队已有的企业微信、钉钉、邮件或 Webhook。
+# 在未配置第三方凭据时，告警仍会出现在 Alertmanager UI，且不会丢失规则状态。
+route:
+  receiver: alertmanager-ui
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+receivers:
+  - name: alertmanager-ui

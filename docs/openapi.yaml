@@ -1,0 +1,116 @@
+openapi: 3.1.0
+info:
+  title: 兴趣搭子在线聊天室 API
+  version: 1.0.0
+  description: |
+    HTTP 接口契约。浏览器客户端使用 HttpOnly `im_session` Cookie；非浏览器客户端可使用 Bearer JWT。
+    所有写接口支持 `Idempotency-Key`，同一身份和相同键的安全重放返回首次响应。
+servers:
+  - url: https://{domain}
+    variables:
+      domain: { default: chat.example.com }
+paths:
+  /healthz:
+    get: { summary: 进程健康检查, responses: { '200': { description: healthy } } }
+  /readyz:
+    get: { summary: 依赖就绪检查, responses: { '200': { description: ready }, '503': { description: dependency unavailable } } }
+  /metrics:
+    get: { summary: Prometheus 指标, responses: { '200': { description: text exposition format, content: { text/plain: {} } } } }
+  /api/auth/register:
+    post:
+      summary: 注册
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { $ref: '#/components/requestBodies/Credentials' }
+      responses: { '201': { description: created }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/auth/login:
+    post:
+      summary: 登录并设置 HttpOnly 会话 Cookie
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { $ref: '#/components/requestBodies/Credentials' }
+      responses: { '200': { description: logged in }, '401': { $ref: '#/components/responses/Unauthorized' } }
+  /api/auth/guest:
+    post:
+      summary: 访客登录
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses: { '200': { description: guest session }, '403': { description: guest mode disabled } }
+  /api/auth/session:
+    get:
+      summary: 校验当前会话
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      responses: { '200': { description: current identity }, '401': { $ref: '#/components/responses/Unauthorized' } }
+  /api/auth/logout:
+    post:
+      summary: 幂等登出、撤销当前 token 并清 Cookie
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses: { '200': { description: logged out } }
+  /api/rooms:
+    get:
+      summary: 获取兴趣房间与在线人数
+      responses: { '200': { description: room list } }
+    post:
+      summary: 创建用户兴趣房间
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, minLength: 2, maxLength: 64 }, topic: { type: string, maxLength: 255 } } } } }
+      responses: { '201': { description: created }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/rooms/{id}/messages:
+    get:
+      summary: 分页读取群聊历史
+      parameters: [ { $ref: '#/components/parameters/RoomID' }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' } ]
+      responses: { '200': { description: messages }, '404': { description: room not found } }
+  /api/conversations:
+    get:
+      summary: 私聊会话列表（包含持久化 unread_count）
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      responses: { '200': { description: conversation summaries } }
+  /api/conversations/{id}/messages:
+    get:
+      summary: 获取私聊历史并推进该用户已读游标
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/ConversationID' }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' } ]
+      responses: { '200': { description: direct messages }, '403': { description: not a participant } }
+  /api/me/profile:
+    get:
+      summary: 获取个人资料
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      responses: { '200': { description: profile } }
+    put:
+      summary: 更新头像与个人简介
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { avatar_url: { type: string, pattern: '^/uploads/' }, bio: { type: string, maxLength: 280 } } } } } }
+      responses: { '200': { description: updated }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/media/upload:
+    post:
+      summary: 上传图片（头像或聊天图片）
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } } }
+      responses: { '201': { description: media url }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /ws:
+    get:
+      summary: WebSocket 升级；事件含 join_room、send_message、send_direct_message，消息由 msg_id 去重
+      security: [ { cookieSession: [] }, { bearerAuth: [] } ]
+      responses: { '101': { description: switching protocols }, '401': { $ref: '#/components/responses/Unauthorized' } }
+components:
+  securitySchemes:
+    cookieSession: { type: apiKey, in: cookie, name: im_session }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: false, schema: { type: string, minLength: 8, maxLength: 128 } }
+    RoomID: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    ConversationID: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    Size: { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+  requestBodies:
+    Credentials:
+      required: true
+      content: { application/json: { schema: { type: object, required: [username, password], properties: { username: { type: string }, password: { type: string, format: password } } } } }
+  responses:
+    BadRequest: { description: invalid request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized: { description: invalid or missing session, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Error: { type: object, required: [error], properties: { error: { type: string } } }

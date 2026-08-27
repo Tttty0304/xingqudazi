@@ -1,0 +1,24 @@
+# Task11（测试与代码质量）：统一 lint 配置。
+# 此前每个 Task 都补了单元测试，但没有统一的 lint 配置——只靠 `gofmt -l .` + `go vet ./...`
+# 兜底，本次补齐一份轻量的 golangci-lint 配置，覆盖常见问题类别，不引入过于严格/
+# 需要大量存量代码返工的规则（如 gocyclo/funlen 等复杂度类规则暂不启用，避免这次
+# 收尾阶段引入大范围重构风险）。
+run:
+  timeout: 3m
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck    # 未处理的 error 返回值
+    - govet       # go vet 官方检查（与现有 CI 习惯一致）
+    - staticcheck # 常见 bug 模式、废弃 API 使用
+    - unused      # 未使用的变量/函数/导入
+    - ineffassign # 无效赋值（写了但从未被读取）
+    - gofmt       # 格式化一致性
+
+issues:
+  exclude-rules:
+    # _test.go 里常见的表驱动测试模式对 unused 误报较多，golangci-lint 官方推荐排除。
+    - path: _test\.go
+      linters:
+        - errcheck

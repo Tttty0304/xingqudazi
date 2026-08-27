@@ -1,0 +1,106 @@
+# 兴趣搭子在线聊天室 —— 本地/演示环境一键部署
+# 使用方式：在项目根目录执行 `docker compose -f deploy/docker-compose.yml up -d --build`
+#
+# build context 均为项目根目录（`..`），因为 server/Dockerfile 与 client/Dockerfile
+# 内部的 COPY 路径是相对项目根目录写的（见各自 Dockerfile 顶部注释）。
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16   # 内置 pgvector 扩展（★4 已确认）
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-im_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-im_password}
+      POSTGRES_DB: ${POSTGRES_DB:-xingqudazi_im}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../migrations/0001_init_schema.up.sql:/docker-entrypoint-initdb.d/0001_init_schema.sql:ro
+      - ../migrations/0002_task17_push_subscriptions.up.sql:/docker-entrypoint-initdb.d/0002_task17_push_subscriptions.sql:ro
+      - ../migrations/0003_perf_indexes.up.sql:/docker-entrypoint-initdb.d/0003_perf_indexes.sql:ro
+      - ../migrations/0004_profiles_rooms_unread.up.sql:/docker-entrypoint-initdb.d/0004_profiles_rooms_unread.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U im_user -d xingqudazi_im"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    environment:
+      HTTP_ADDR: ":8080"
+      APP_ENV: ${APP_ENV:-development}
+      POSTGRES_DSN: "postgres://${POSTGRES_USER:-im_user}:${POSTGRES_PASSWORD:-im_password}@postgres:5432/${POSTGRES_DB:-xingqudazi_im}?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      AUTH_OMIT_TOKEN_RESPONSE: ${AUTH_OMIT_TOKEN_RESPONSE:-false}
+      ALLOW_GUEST: ${ALLOW_GUEST:-true}
+      POSTGRES_MAX_CONNS: ${POSTGRES_MAX_CONNS:-10}
+      POSTGRES_MIN_CONNS: ${POSTGRES_MIN_CONNS:-1}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-10}
+      MAX_MESSAGE_LENGTH: ${MAX_MESSAGE_LENGTH:-1000}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-5242880}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+      # 能力补齐：显式实例标识（默认回落到容器 hostname 也具有唯一性，这里
+      # 显式设置只是让日志/多实例验证脚本里的输出更好辨认），见
+      # server/cmd/server/main.go 的 instanceID() 与
+      # deploy/docker-compose.multi-instance.yml 的用法说明。
+      INSTANCE_ID: "server1"
+    ports:
+      - "8080:8080"
+    volumes:
+      # Task10 性能与成本落地复核时发现的真实缺口：上传的图片默认存到容器内
+      # `./uploads`（即 /app/uploads），此前未挂载任何卷，容器重建（`--build`）
+      # 后旧图片全部丢失、留下 404 死链接（Task9 前端功能闭环真机验证时已实际
+      # 观察到这个现象）。demo/评估场景补一个具名卷做持久化即可，生产环境应
+      # 替换为真实对象存储（README/文档已如实标注这一简化点）。
+      - media_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  client:
+    build:
+      context: ..
+      dockerfile: client/Dockerfile
+      args:
+        # 空字符串表示"同源相对路径"：前端所有 API 调用路径已自带 /api 前缀
+        # （见 client/src/api/client.ts），若这里再设为 "/api" 会导致请求路径
+        # 变成 /api/api/xxx（Task9 真机浏览器验证时发现的真实 404 bug，已修复）。
+        VITE_API_BASE_URL: ""
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    depends_on:
+      - server
+
+volumes:
+  pgdata:
+  media_uploads:

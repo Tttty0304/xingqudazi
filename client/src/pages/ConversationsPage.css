@@ -1,0 +1,49 @@
+.conversations-title {
+  margin: 0 0 1rem;
+}
+
+.conversations-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #888;
+}
+
+.conversations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.conversation-card {
+  text-align: left;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.conversation-card:hover {
+  border-color: #2b5a9e;
+}
+
+.conversation-card-name {
+  font-weight: 600;
+}
+
+.conversation-card-preview {
+  color: #999;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-card-unread {
+  color: #ff9f43;
+  font-size: 0.8rem;
+}

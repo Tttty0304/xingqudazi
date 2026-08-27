@@ -1,0 +1,10 @@
+meta:
+  schema_version: "2.0"
+  stage0_skipped: true
+  stage0_skipped_at: "2026-08-17T00:00:00+08:00"
+  note: >
+    本项目为独立的 AI 交互能力考察题目（社交平台架构中心，兴趣搭子在线聊天室），
+    从 0 搭建，不对应任何内部 QQ 业务域仓库/流水线/STKE 集群/七彩石配置/优测目录，
+    因此不适用常规内部基础设施坐标字段（repo/cicd/stke/utest 等），Stage 0 判定为
+    隐式跳过。后续如确定实际技术栈、部署方式，相关信息按需记录在 project/Plan 文档中，
+    而非本文件。

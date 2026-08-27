@@ -1,0 +1,25 @@
+# 生产入口：Caddy 在 DOMAIN 有效、80/443 可达时自动申请并续期 Let's Encrypt 证书，
+# 同时把 HTTP 自动跳转 HTTPS。DOMAIN 通过 .env.production 提供。
+{$DOMAIN} {
+	encode zstd gzip
+
+	@api path /api/*
+	reverse_proxy @api server:8080
+
+	@ws path /ws
+	reverse_proxy @ws server:8080
+
+	@uploads path /uploads/*
+	reverse_proxy @uploads server:8080
+
+	header {
+		-X-Powered-By
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Content-Security-Policy "default-src 'self'; connect-src 'self' wss:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+	}
+
+	reverse_proxy client:80
+}

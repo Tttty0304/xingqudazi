@@ -1,0 +1,19 @@
+groups:
+  - name: interest-chat-service
+    rules:
+      - alert: InterestChatServerDown
+        expr: up{job="interest-chat-server"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "兴趣搭子后端不可抓取"
+          description: "Prometheus 连续两分钟无法抓取 server:8080/metrics。"
+      - alert: InterestChatWebSocketErrors
+        expr: increase(interest_chat_ws_errors_total[5m]) >= 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "WebSocket 协议错误增多"
+          description: "五分钟内 WebSocket 协议错误不少于 20 次。"

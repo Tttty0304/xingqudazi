@@ -1,0 +1,51 @@
+# Go
+server/xingqudazi-im-server
+*.exe
+*.test
+*.out
+
+# 环境变量（真实密钥/连接串不入库，用 .env.example 作为模板）
+.env
+.env.production
+server/.env
+client/.env
+
+# Node 依赖与前端构建产物（Docker 构建阶段由 npm ci / npm run build 重新生成，
+# 不入库；锁文件 package-lock.json 必须保留以锁定依赖版本）
+client/node_modules/
+node_modules/
+client/dist/
+dist/
+
+# Go 编译产物（Docker 构建阶段由 go build 重新生成，不入库）
+server/xingqudazi-im-server
+*.exe
+*.test
+*.out
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# 数据库数据卷（Docker Compose named volume 不受影响，此处防止误挂本地目录）
+pgdata/
+
+# 数据库备份产物（scripts/db_backup.sh 生成，属本地运行时产物，不入库）
+backups/
+
+# 本地图片上传目录（Docker 具名卷，运行时产物不入库）
+uploads/
+
+# iWiki plugin files
+.iwiki
+
+# 本地 AI 工具 / 浏览器测试工具产物（不入库）
+.claude/
+.codebuddy/
+.playwright-cli/
+node_modules/
+
+# 临时联调/验证脚本（不入库）
+alice_login.yaml
+bob_check1.yaml
