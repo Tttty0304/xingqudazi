@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useSocket } from '../context/SocketContext'
-import type { PendingFriendRequest } from '../types'
+import type { ConversationSummary, PendingFriendRequest } from '../types'
 import { NotificationToggle } from './NotificationToggle'
 import './Layout.css'
 
@@ -23,7 +23,7 @@ import './Layout.css'
  */
 export function Layout() {
   const { username, isGuest, logout, token, userId } = useAuth()
-  const { subscribe } = useSocket()
+  const { subscribe, status } = useSocket()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -45,6 +45,33 @@ export function Layout() {
         // 与此前布尔值实现在网络异常时的降级程度一致。
       })
   }, [token])
+
+  // 私聊未读数以"后端持久化 unread_count 总和"为基准，而非仅靠 WS 事件累加。
+  // 背景（能力补齐，用户反馈驱动）：手机端微信内置浏览器在切后台/锁屏时会主动
+  // 断开 WS 长连接，`direct_message_received` 实时事件会丢失，导致仅靠事件累加的
+  // 导航高亮在断连期间不更新。改为从 `GET /api/conversations` 的持久化 unread_count
+  // 拉基准值，WS 事件只做"基准之上的实时 +1"增量，并在 WS 重连后重新校准，
+  // 从而覆盖断连期间错过的消息。
+  useEffect(() => {
+    if (!token) return
+    let cancelled = false
+    const refreshBaseline = () => {
+      api
+        .get<ConversationSummary[]>('/api/conversations', token)
+        .then((list) => {
+          if (cancelled) return
+          const total = list.reduce((sum, c) => sum + (c.unread_count ?? 0), 0)
+          setMessageNoticeCount(total)
+        })
+        .catch(() => {
+          // 拉取失败静默降级：保留当前计数，仍可通过 WS 事件继续累加。
+        })
+    }
+    refreshBaseline()
+    return () => {
+      cancelled = true
+    }
+  }, [token, status])
 
   useEffect(() => {
     return subscribe((event) => {
